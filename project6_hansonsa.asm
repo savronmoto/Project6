@@ -28,7 +28,7 @@ mGetString MACRO prompt,maxsize,inputString,stringLength
   mov   ECX, maxsize			; (input parameter, by value)
   call  ReadString
   mov	EBX, stringLength
-  mov   [EBX], EAX		; bytes read - (output parameter, by reference)
+  mov   [EBX], EAX		        ; bytes read - (output parameter, by reference)
   call  CrLf
   pop	EAX
   pop	ECX
@@ -97,9 +97,38 @@ readVal PROC
   pushad
 ; Invoke the mGetSring macro to get user input in the form of a string of digits.
   mGetString [EBP+8],MAXSIZE,[EBP+12],[EBP+16]
-
 ; Convert (using string primitives) the string of ascii digits to its numeric value representation (SDWORD)
-;  mov   ESI, 
+;  numInt = 0
+;  get numString
+;  for numChar in numString:
+;    if 48 <= numChar <= 57:
+;      numInt = 10 * numInt + (numChar - 48)
+;    else:
+;      break
+  mov	EBX, 10			
+  mov	ECX, [EBP+16]
+  dec   ECX
+  mov	ESI, [EBP+12]
+_loop:
+  cld					; incrementing ESI
+  lodsb					; bytes in inString into AL
+  cmp	AL, 48
+  jl	_notNum
+  cmp	AL, 57
+  jg	_notNum
+  sub	AL, 48			; it IS a number digit
+  movzx EAX, AL
+  imul	EBX
+  mov	EBX, EAX
+  lodsb
+  cmp	AL, 48
+  jl    _notNum
+  cmp	AL, 57
+  jg	_notNum
+  sub	AL, 48
+  add	AL, EBX
+  LOOP	_loop
+
 ; validate the user’s input is a valid number (no letters, symbols, etc).
 
 ; Store this value in a memory variable (output parameter, by reference). 
