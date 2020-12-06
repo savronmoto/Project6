@@ -15,17 +15,17 @@ INCLUDE Irvine32.inc
 ; MACROS
 ;-----------------------------------------------------------------
 
-mGetString MACRO prompt,maxsize,inputString,stringLength
+mGetString MACRO prompt,inputString,maxsize,stringLength
   ; preserve registers
   push	EDX
   push  ECX
   push  EAX
   ; display prompt 
-  mov   EDX, prompt				; (input parameter, by reference)
+  mov   EDX, prompt				; prompt for a number (input parameter, by reference) - should this be my other macro? within a macro??
   call  WriteString
   ; get user input 
-  mov   EDX, inputString		; (output parameter, by reference)
-  mov   ECX, maxsize			; (input parameter, by value)
+  mov   EDX, inputString		; buffer (output parameter, by reference)
+  mov   ECX, maxsize        	; maxsize (input parameter, by value)
   call  ReadString
   mov	EBX, stringLength
   mov   [EBX], EAX		        ; bytes read - (output parameter, by reference)
@@ -45,52 +45,57 @@ mDisplayString MACRO userString
 
 ENDM
 
-MAXSIZE = 101
+MAXSIZE = 21
 ARRAYSIZE = 10
+
 .data
 intro		BYTE	 " String Primitive Manipulation with Macros, by Savanna Hanson",13,10,0
 intro2		BYTE	 "Please enter 10 signed decimal integers."
  			BYTE	 "Each number needs to be small enough to fit inside a 32-bit register. After you have"
 			BYTE	 " finished inputting the raw numbers I will display a list of the integers, their sum, and their average value.",13,10,0
-inString	BYTE	 MAXSIZE DUP(?)	 ;User String
-outString	BYTE	 MAXSIZE DUP(?)	 ;User String - DO I NEED THIS??
+inString	BYTE	 MAXSIZE DUP(0)	 ;User String
 prompt		BYTE	 "Please enter a signed decimal integer: ",0
 invalid     BYTE     "That is not a valid integer, try again.",0
-startLabel  BYTE     "The starting string:    ",0
-dupLabel    BYTE     "The duplicate string:   ",0
-capLabel    BYTE     "The capitalized string: ",0
-revLabel    BYTE     "The reversed string:    ",0
+intLabel    BYTE     "The integers you supplied are: ",0
+sumLabel    BYTE     "Their sum is:                  ",0
+avgLabel    BYTE     "Their average is:              ",0
 sLen		DWORD	 ?
 numList		SDWORD	 ARRAYSIZE DUP(?)
 typeList    DWORD    TYPE numList      ; 4 (type SDWORD = 4 bytes)
 countList   DWORD    LENGTHOF numList  ; 
-numBytes    DWORD    SIZEOF numList    ; 
-validInt	SDWORD	 ?				   ; "returns" from readVal, to be added to numList in loop
+validInt	DWORD	 ?				   ; "returns" from readVal, to be added to numList in loop
+comma		BYTE	 ", ",0
 
 .code
 main PROC
-  mov	ECX, ARRAYSIZE
-_untilTen:
+  mov	ECX, ARRAYSIZE							
   mDisplayString OFFSET intro
   call	CrLf
   mDisplayString OFFSET intro2
+  mov	EDI, OFFSET numList			
+_untilTen:							; Get 10 valid integers from the user.
   push	OFFSET validInt
   push  OFFSET invalid
-  push	sLen
+  push	OFFSET sLen
   push	OFFSET inString
   push  OFFSET prompt
   call  readVal
-  push  OFFSET validInt
-  push  validInt
-  call  writeVal
-  mov	ESI, validInt				; this is a SDWORD value. Should I change it back to ascii before adding to the array? Probably...
-  mov	EDI, OFFSET numList
-  mov	[EDI], ESI				
+  mov	ESI, validInt				; this is a SDWORD integer value!
+  mov	[EDI], ESI					; Stores these numeric values in an array.
   add	EDI, typeList
   LOOP	_untilTen
-; Get 10 valid integers from the user.
-; Stores these numeric values in an array.
-; Display the integers, their sum, and their average.
+  ; do math
+  mov   ECX, ARRAYSIZE
+  mDisplayString OFFSET intLabel 
+_displayLoop:
+  mov	ESI, OFFSET numList
+  cld								; moving forward
+  lodsd								; move first value in numList to EAX for processing
+  push	EAX
+  push  OFFSET 
+  call  writeVal					; Display the integers, ****EVENTUALLY**** their sum, and their average.
+  mDisplayString OFFSET comma
+  LOOP	_displayLoop
 
   Invoke ExitProcess,0	; exit to operating system
 main ENDP
@@ -98,13 +103,14 @@ main ENDP
 
 ; ---------------------------------------------------------------------------------
 ; Name: readVal
-;	
+;	A method to read user input of ascii number characters and turn them into their acutal signed integer value (as a SDWORD)
+;   Validation occurs to ensure input is a number and not some other character. 
 ; Preconditions:
 ; Postconditions: 
 ; Receives:	[EBP+24] = validInt - offset address for data label
 ;			[EBP+20] = invalid - offset address
-;           [EBP+16] = sLen - value: ?
-;			[EBP+12] = inString - offset address
+;           [EBP+16] = sLen - offset address
+;			[EBP+12] = inString (the buffer) - offset address
 ;	    	[EBP+8] = prompt - offset address
 ; Returns: 
 ; ---------------------------------------------------------------------------------
@@ -117,23 +123,24 @@ readVal PROC
 
 ; Invoke the mGetSring macro to get user input in the form of a string of digits.
 _getInput:
-  mGetString [EBP+8],MAXSIZE,[EBP+12],[EBP+16]
+  mGetString [EBP+8],[EBP+12],MAXSIZE,[EBP+16]
 
 ; Convert (using string primitives) the string of ascii digits to its numeric value representation (SDWORD),
 ; and validate the user’s input is a valid number (no letters, symbols, etc).
-
-  mov	ECX, [EBP+16]
-  dec   ECX
-  mov	ESI, [EBP+12]
+  mov	ESI, [EBP+16]
+  mov   ECX, [ESI]
+;  dec   ECX
+  mov	ESI, [EBP+12]	
+  mov   EBX, 0          ; numInt starts at 0
 _loop:
   cld					; incrementing
   lodsb					; bytes in inString into AL
-  mov   EBX, 0          ; numInt starts at 0
   cmp	AL, 48
   jl	_notNum			; validate
   cmp	AL, 57
   jg	_notNum
   sub	AL, 48			; it IS a number digit
+  movzx EAX, AL
   push  EAX              
   mov   EAX, 10         
   imul	EBX             ; 10 * numInt
@@ -153,21 +160,44 @@ _store:
   
   popad
   pop	EBP 
+
+  ret   20
 readVal ENDP
 
 ; ---------------------------------------------------------------------------------
 ; Name: writeVal
-;	
+;	Convert a numeric SDWORD value (input parameter, by value) to a string of ascii digits
 ; Postconditions:
-; Receives: [EBP+12] = address of validInt - input parameter, by reference
-;	    	[EBP+8] = validInt - input parameter, by value - SDWORD
+; Receives;	    	[EBP+8] = validInt - input parameter, by value - SDWORD
 ; Returns: 
 ; ---------------------------------------------------------------------------------
 writeVal PROC
-; Convert a numeric SDWORD value (input parameter, by value) to a string of ascii digits
-  
+; preserve EBP
+  push	EBP				
+  mov	EBP, ESP
+; preserve registers
+  pushad
 
-; Invoke the mDisplayString macro to print the ascii representation of the SDWORD value to the output.
+; If the SDWORD is negative, first add the ascii character for -, whichi is 45 (2Dh) ***********DO NEG PART*********
+
+; then for each digit, divide by 10. the remainder plus 48 is the ascii code for the digit.
+  mov  EBX, 10
+  mov  EAX, [EBP+8]  ; move validInt into dividend
+  mov  ECX, 0		 ; counter
+_divLoop:
+  cdq
+  idiv EBX			 ; EAX/EBX = q: EAX r: EDX
+  add  EDX, 48
+  push EDX
+  inc  ECX
+  cmp  EAX, 0		 ; if quotient is 0 we can stop
+  jnz  _divLoop		 ; then do it again. divide the quotient by 10, and the remainder plus 48 is the second to last digit. and so on.
+_writeLoop:
+  pop  EBX
+  mDisplayString EBX ; Invoke the mDisplayString macro to print the ascii representation of the SDWORD value to the output.
+  LOOP _writeLoop
+
+  ret  4
 writeVal ENDP
 
 END main
