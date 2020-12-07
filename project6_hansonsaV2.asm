@@ -49,22 +49,24 @@ MAXSIZE = 21
 ARRAYSIZE = 10
 
 .data
-intro		BYTE	 " String Primitive Manipulation with Macros, by Savanna Hanson",13,10,0
-intro2		BYTE	 "Please enter 10 signed decimal integers."
- 			BYTE	 "Each number needs to be small enough to fit inside a 32-bit register. After you have"
-			BYTE	 " finished inputting the raw numbers I will display a list of the integers, their sum, and their average value.",13,10,0
-inString	BYTE	 MAXSIZE DUP(0)	 ;User String
-prompt		BYTE	 "Please enter a signed decimal integer: ",0
-invalid     BYTE     "That is not a valid integer, try again.",0
-intLabel    BYTE     "The integers you supplied are: ",0
-sumLabel    BYTE     "Their sum is:                  ",0
-avgLabel    BYTE     "Their average is:              ",0
-sLen		DWORD	 ?
-numList		SDWORD	 ARRAYSIZE DUP(?)
-typeList    DWORD    TYPE numList      ; 4 (type SDWORD = 4 bytes)
-countList   DWORD    LENGTHOF numList  ; 
-validInt	DWORD	 ?				   ; "returns" from readVal, to be added to numList in loop
-comma		BYTE	 ", ",0
+intro			BYTE	 " String Primitive Manipulation with Macros, by Savanna Hanson",13,10,0
+intro2			BYTE	 "Please enter 10 signed decimal integers."
+ 				BYTE	 "Each number needs to be small enough to fit inside a 32-bit register. After you have"
+				BYTE	 " finished inputting the raw numbers I will display a list of the integers, their sum, and their average value.",13,10,0
+inString		BYTE	 MAXSIZE DUP(0)	 ;User String
+prompt			BYTE	 "Please enter a signed decimal integer: ",0
+invalid			BYTE     "That is not a valid integer, try again.",0
+intLabel		BYTE     "The integers you supplied are: ",0
+sumLabel		BYTE     "Their sum is:                  ",0
+avgLabel		BYTE     "Their average is:              ",0
+sLen			DWORD	 ?
+numList			SDWORD	 ARRAYSIZE DUP(?)
+typeList		DWORD    TYPE numList      ; 4 (type SDWORD = 4 bytes)
+countList		DWORD    LENGTHOF numList  ; 
+validInt		DWORD	 ?				   ; "returns" from readVal, to be added to numList in loop
+comma			BYTE	 ", ",0
+revString		BYTE     MAXSIZE DUP(0)
+properString	BYTE     MAXSIZE DUP(0)
 
 .code
 main PROC
@@ -84,15 +86,17 @@ _untilTen:							; Get 10 valid integers from the user.
   mov	[EDI], ESI					; Stores these numeric values in an array.
   add	EDI, typeList
   LOOP	_untilTen
+
   ; do math
 
   mov   ECX, ARRAYSIZE
   mDisplayString OFFSET intLabel 
-_displayLoop:
   mov	ESI, OFFSET numList
+_displayLoop:
   cld								; moving forward
   lodsd								; move first value in numList to EAX for processing
-  push  OFFSET validInt
+  push  OFFSET properString
+  push  OFFSET revString
   push	EAX
   call  writeVal					; Display the integers, ****EVENTUALLY**** their sum, and their average.
   mDisplayString OFFSET comma
@@ -169,7 +173,8 @@ readVal ENDP
 ; Name: writeVal
 ;	Convert a numeric SDWORD value (input parameter, by value) to a string of ascii digits
 ; Postconditions:
-; Receives;	[EBP+12] = validInt - by reference   	
+; Receives: [EBP+16] = properString - by reference - output pararmeter
+;			[EBP+12] = revString - by reference   	
 ;			[EBP+8] = EAX (nth element of numList) - input parameter, by value - SDWORD
 ; Returns: 
 ; ---------------------------------------------------------------------------------
@@ -183,23 +188,42 @@ writeVal PROC
 ; If the SDWORD is negative, first add the ascii character for -, whichi is 45 (2Dh) ***********DO NEG PART*********
 
 ; then for each digit, divide by 10. the remainder plus 48 is the ascii code for the digit.
-  mov  EBX, 10
-  mov  EAX, [EBP+8]  ; move validInt into dividend
-  mov  ECX, 0		 ; counter
-_divLoop:
-  mov  EDI, [EBP+12] ; EDI points to address of validInt 
+  mov   EBX, 10
+  mov   EAX, [EBP+8]			 ; move element of numList into dividend
+  mov   ECX, 0				 ; counter
+  mov   EDI, [EBP+12]		 ; EDI points to address of outString I CAN DO THE STORSB thing now because i have a byte array. and use redfield's reversal algo.
+_divLoop:  
   cdq
-  idiv EBX			 ; EAX/EBX = q: EAX r: EDX
-  add  EDX, 48
-  mov  [EDI], EDX	
-  inc  ECX
-  cmp  EAX, 0		 ; if quotient is 0 we can stop
-  jnz  _divLoop		 ; then do it again. divide the quotient by 10, and the remainder plus 48 is the second to last digit. and so on.
-_writeLoop:
-  mDisplayString [EBP+12] ; Invoke the mDisplayString macro to print the ascii representation of the SDWORD value to the output.
-  LOOP _writeLoop
+  idiv  EBX					 ; EAX/EBX = q: EAX r: EDX
+  add   EDX, 48
+  push  EAX					 ; to save the quotient
+  mov   EAX, EDX				 ; move the num we want to EAX so we can use STOSD
+  stosb						 ; puts EAX val into [EDI] and increments EDI ****should this be stosD?????
+  pop   EAX
+;  push EDX
+;  mov  [EDI], EDX	
+  inc   ECX
+  cmp   EAX, 0				 ; if quotient is 0 we can stop
+  jnz  _divLoop				 ; then do it again. divide the quotient by 10, and the remainder plus 48 is the second to last digit. and so on.
 
-  ret  4
+;reverse:
+  mov   ESI, [EBP+12]
+  add   ESI, ECX
+  dec   ESI
+  mov   EDI, [EBP+16]
+ _revLoop:
+  std
+  lodsb
+  cld
+  stosb
+  LOOP   _revLoop
+
+;write
+  mDisplayString [EBP+16]	 ; Invoke the mDisplayString macro to print the ascii representation of the SDWORD value to the output.
+
+  popad						 ; restore registers
+  pop   EBP
+  ret   12
 writeVal ENDP
 
 END main
