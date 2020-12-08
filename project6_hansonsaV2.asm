@@ -40,7 +40,6 @@ mDisplayString MACRO userString
   push  EDX
   mov	EDX, userString
   call	WriteString
-  call  CrLf
   pop	EDX
 
 ENDM
@@ -74,6 +73,7 @@ main PROC
   mDisplayString OFFSET intro
   call	CrLf
   mDisplayString OFFSET intro2
+  call  CrLf
   mov	EDI, OFFSET numList			
 _untilTen:							; Get 10 valid integers from the user.
   push	OFFSET validInt
@@ -101,6 +101,8 @@ _displayLoop:
   call  writeVal					; Display the integers, ****EVENTUALLY**** their sum, and their average.
   mDisplayString OFFSET comma
   LOOP	_displayLoop
+  call  CrLf
+  call  CrLf
 
   Invoke ExitProcess,0	; exit to operating system
 main ENDP
@@ -131,19 +133,66 @@ _getInput:
   mGetString [EBP+8],[EBP+12],MAXSIZE,[EBP+16]
 
 ; Convert (using string primitives) the string of ascii digits to its numeric value representation (SDWORD),
-; and validate the user’s input is a valid number (no letters, symbols, etc).
-  mov	ESI, [EBP+16]
-  mov   ECX, [ESI]
+; and validate the user’s input is a valid number (no letters, symbols(other than negataive), etc).
+  mov	ESI, [EBP+16]	; 
+  mov   ECX, [ESI]		; set string length as counter
 ;  dec   ECX
   mov	ESI, [EBP+12]	
   mov   EBX, 0          ; numInt starts at 0
-_loop:
-  cld					; incrementing
+
+  cld
   lodsb					; bytes in inString into AL
-  cmp	AL, 48
-  jl	_notNum			; validate
+
+  cmp   AL, 45			; check if char is negative sign
+  je	_negLoop
+
+  cmp	AL, 48			; make sure it is a number char
+  jl	_notNum			
   cmp	AL, 57
   jg	_notNum
+  sub	AL, 48			; it IS a number digit, perform algorithm
+  movzx EAX, AL
+  push  EAX              
+  mov   EAX, 10         
+  imul	EBX             ; 10 * numInt
+  mov	EBX, EAX        
+  pop   EAX             ; (numChar-48)
+  movzx EAX, AL
+  add   EBX, EAX        ; numInt = 10 * numInt + (numChar - 48)
+  dec	ECX
+  jmp	_posLoop
+
+; If it is negative:
+_negLoop:
+  dec   ECX
+  lodsb					; next char
+  cmp	AL, 48			; make sure it is a number char
+  jl	_notNum			
+  cmp	AL, 57
+  jg	_notNum
+  sub	AL, 48			; it IS a number digit, perform algorithm
+  movzx EAX, AL
+  push  EAX              
+  mov   EAX, 10         
+  imul	EBX             ; 10 * numInt
+  mov	EBX, EAX        
+  pop   EAX             ; (numChar-48)
+  movzx EAX, AL
+  add   EBX, EAX        ; numInt = 10 * numInt + (numChar - 48)
+  LOOP  _negLoop
+  neg   EBX
+  jmp	_store
+
+_posLoop:
+  cmp   ECX, 0
+  jz	_store
+  cld
+  lodsb	
+  cmp	AL, 48			; make sure it is a number char
+  jl	_notNum			
+  cmp	AL, 57
+  jg	_notNum
+
   sub	AL, 48			; it IS a number digit
   movzx EAX, AL
   push  EAX              
@@ -153,7 +202,7 @@ _loop:
   pop   EAX             ; (numChar-48)
   movzx EAX, AL
   add   EBX, EAX        ; numInt = 10 * numInt + (numChar - 48)
-  LOOP	_loop
+  LOOP	_posloop
   jmp	_store
 _notNum:
   mDisplayString [EBP+20]
@@ -185,11 +234,13 @@ writeVal PROC
 ; preserve registers
   pushad
 
+; to check if the SDWORD is negative, check the hex MSB, if it is 8 or higher the number is negative. or in decimal it would be 2147483648 or greater
+
 ; If the SDWORD is negative, first add the ascii character for -, whichi is 45 (2Dh) ***********DO NEG PART*********
 
 ; then for each digit, divide by 10. the remainder plus 48 is the ascii code for the digit.
   mov   EBX, 10
-  mov   EAX, [EBP+8]			 ; move element of numList into dividend
+  mov   EAX, [EBP+8]		 ; move element of numList into dividend
   mov   ECX, 0				 ; counter
   mov   EDI, [EBP+12]		 ; EDI points to address of outString I CAN DO THE STORSB thing now because i have a byte array. and use redfield's reversal algo.
 _divLoop:  
@@ -197,7 +248,7 @@ _divLoop:
   idiv  EBX					 ; EAX/EBX = q: EAX r: EDX
   add   EDX, 48
   push  EAX					 ; to save the quotient
-  mov   EAX, EDX				 ; move the num we want to EAX so we can use STOSD
+  mov   EAX, EDX			 ; move the num we want to EAX so we can use STOSD
   stosb						 ; puts EAX val into [EDI] and increments EDI ****should this be stosD?????
   pop   EAX
 ;  push EDX
@@ -206,7 +257,9 @@ _divLoop:
   cmp   EAX, 0				 ; if quotient is 0 we can stop
   jnz  _divLoop				 ; then do it again. divide the quotient by 10, and the remainder plus 48 is the second to last digit. and so on.
 
-;reverse:
+  push  ECX					 ; save the string's length!
+
+;reverse so it's proper:
   mov   ESI, [EBP+12]
   add   ESI, ECX
   dec   ESI
@@ -217,6 +270,12 @@ _divLoop:
   cld
   stosb
   LOOP   _revLoop
+;add the null terminator:
+  pop   ECX
+  mov   EDI, [EBP+16]
+  add   EDI, ECX			 ; add the length to get to the end of the string
+  mov	EAX, 0
+  mov	[EDI], EAX			 ; add the null terminator 0
 
 ;write
   mDisplayString [EBP+16]	 ; Invoke the mDisplayString macro to print the ascii representation of the SDWORD value to the output.
