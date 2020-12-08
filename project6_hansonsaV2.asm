@@ -1,19 +1,36 @@
 TITLE String Primitives & Macros     (project6_hansonsa.asm)
 
 ; Author:					Savanna Hanson
-; Last Modified:			4 December 2020
+; Last Modified:			7 December 2020
 ; OSU email address:		hansonsa@oregonstate.edu
 ; Course number/section:	CS271 Section 400
 ; Project Number:			6			
 ; Due Date:					6 December 2020
-; Description:				Does some stuff with string primitives.
-;							*****write more stuff here obvs*****
+; Description:				A program that creates versions of the Irvine procedures ReadInt and WriteInt.
+;							Gets user input of signed integers in string form, then calls the conversion procedure to 
+;							translate ascii into a SDWORD value. The program will perform sum and average calculations 
+;							on the integer values, then convert the number back to ascii characters, and display all
+;							the input numbers as well as their sum and average.
 
 INCLUDE Irvine32.inc
 
-;-----------------------------------------------------------------
+;----------------------------------------------------------------------------------
 ; MACROS
-;-----------------------------------------------------------------
+;----------------------------------------------------------------------------------
+
+; ---------------------------------------------------------------------------------
+; Name: mGetString
+;	Stores a user input string
+; Preconditions: do not use eax, edx, ecx, ebx as arguments
+; Receives:
+;	prompt = string for user input prompt - reference
+;	inputString = buffer for string to be read into - reference
+;	maxsize = maxsize of string - value
+;	stringLength = the number of bytes read - reference
+; Returns: 
+;	inputString = generated string address
+;	stringLength = length of the generated string
+; ---------------------------------------------------------------------------------
 
 mGetString MACRO prompt,inputString,maxsize,stringLength
   ; preserve registers
@@ -21,7 +38,7 @@ mGetString MACRO prompt,inputString,maxsize,stringLength
   push  ECX
   push  EAX
   ; display prompt 
-  mov   EDX, prompt				; prompt for a number (input parameter, by reference) - should this be my other macro? within a macro??
+  mov   EDX, prompt				; prompt for a number (input parameter, by reference)
   call  WriteString
   ; get user input 
   mov   EDX, inputString		; buffer (output parameter, by reference)
@@ -34,6 +51,14 @@ mGetString MACRO prompt,inputString,maxsize,stringLength
   pop	ECX
   pop	EDX
 ENDM
+
+; ---------------------------------------------------------------------------------
+; Name: mDisplayString
+;	Displays a passed string to output.
+; Preconditions: do not use edx as argument
+; Receives:
+;	userString = string to be printed - input paramete by reference
+; ---------------------------------------------------------------------------------
 
 mDisplayString MACRO userString
   ; print string - (input parameter, by reference)
@@ -54,7 +79,7 @@ intro2			BYTE	 "Please enter 10 signed decimal integers."
 				BYTE	 " finished inputting the raw numbers I will display a list of the integers, their sum, and their average value.",13,10,0
 inString		BYTE	 MAXSIZE DUP(0)	 ;User String
 prompt			BYTE	 "Please enter a signed decimal integer: ",0
-invalid			BYTE     "That is not a valid integer, try again.",0
+invalid			BYTE     "That is not a valid integer, try again. ",0
 intLabel		BYTE     "The integers you supplied are: ",0
 sumLabel		BYTE     "Their sum is:                  ",0
 avgLabel		BYTE     "Their average is:              ",0
@@ -71,20 +96,23 @@ average			SDWORD   ?
 
 .code
 main PROC
+; Display intoduction
   mov	ECX, ARRAYSIZE							
   mDisplayString OFFSET intro
   call	CrLf
   mDisplayString OFFSET intro2
   call  CrLf
+
+; Get 10 valid integers from the user
   mov	EDI, OFFSET numList			
-_untilTen:							; Get 10 valid integers from the user.
+_untilTen:							
   push	OFFSET validInt
   push  OFFSET invalid
   push	OFFSET sLen
   push	OFFSET inString
   push  OFFSET prompt
   call  readVal
-  mov	ESI, validInt				; this is a SDWORD integer value!
+  mov	ESI, validInt				; This is a SDWORD integer value!
   mov	[EDI], ESI					; Stores these numeric values in an array.
   add	EDI, typeList
   LOOP	_untilTen
@@ -107,12 +135,12 @@ _untilTen:							; Get 10 valid integers from the user.
   mDisplayString OFFSET intLabel 
   mov	ESI, OFFSET numList
 _displayLoop:
-  cld								; moving forward
-  lodsd								; move first value in numList to EAX for processing
+  cld							
+  lodsd								; Move first value in numList to EAX for processing
   push  OFFSET properString
   push  OFFSET revString
   push	EAX
-  call  writeVal					; Display the integers, ****EVENTUALLY**** their sum, and their average.
+  call  writeVal					; Display the integers
   mDisplayString OFFSET comma
   LOOP	_displayLoop
   call  CrLf
@@ -123,16 +151,14 @@ _displayLoop:
   push  OFFSET properString
   push  OFFSET revString
   push  sum
-  call  writeVal
+  call  writeVal					; Display the sum
   call  CrLf
   mDisplayString OFFSET avgLabel
   push  OFFSET properString
   push  OFFSET revString
-  push  average
+  push  average						; Display the average
   call  writeVal
   call  CrLf
-
-
 
   Invoke ExitProcess,0	; exit to operating system
 main ENDP
@@ -142,14 +168,14 @@ main ENDP
 ; Name: readVal
 ;	A method to read user input of ascii number characters and turn them into their acutal signed integer value (as a SDWORD)
 ;   Validation occurs to ensure input is a number and not some other character. 
-; Preconditions:
-; Postconditions: 
+; Preconditions: 
+;	validInt, invalid, sLen, inString, and prompt must all be intialized in the date section.
 ; Receives:	[EBP+24] = validInt - offset address for data label
 ;			[EBP+20] = invalid - offset address
 ;           [EBP+16] = sLen - offset address
 ;			[EBP+12] = inString (the buffer) - offset address
 ;	    	[EBP+8] = prompt - offset address
-; Returns: 
+; Returns: validInt generated by procedure and stored in global variable.
 ; ---------------------------------------------------------------------------------
 readVal PROC
 ; preserve EBP
@@ -239,9 +265,9 @@ _notNum:
   mDisplayString [EBP+20]
   jmp	_getInput
 _store: 
-; Store this value in a memory variable (output parameter, by reference). 
-  mov	EDI, [EBP+24]	; validInt address into EDI  ;
-  mov	[EDI], EBX		; numInt is the value at that address
+; Store this value in a memory variable (output parameter, by reference) 
+  mov	EDI, [EBP+24]	; validInt address into EDI 
+  mov	[EDI], EBX		; numInt becomes the value at that address
   
   popad
   pop	EBP 
@@ -251,12 +277,14 @@ readVal ENDP
 
 ; ---------------------------------------------------------------------------------
 ; Name: writeVal
-;	Convert a numeric SDWORD value (input parameter, by value) to a string of ascii digits
+;	Convert a numeric SDWORD value to a string of ascii digits, and display to output.
+; Preconditions: [EBP+8] must be a SDWORD. 
 ; Postconditions:
-; Receives: [EBP+16] = properString - by reference - output pararmeter
-;			[EBP+12] = revString - by reference   	
-;			[EBP+8] = EAX (nth element of numList) - input parameter, by value - SDWORD
-; Returns: 
+; Receives: [EBP+16] = properString - output parameter by reference 
+;			[EBP+12] = revString - output parameter by reference  	
+;			[EBP+8] = an SWORD value - input parameter by value
+; Returns:  properString and revString are saved as global variables, but will be
+;			overwritten the next time the procedure runs.
 ; ---------------------------------------------------------------------------------
 writeVal PROC
 ; preserve EBP
@@ -265,7 +293,9 @@ writeVal PROC
 ; preserve registers
   pushad
 
-; to check if the SDWORD is negative, check the hex MSB, if it is 8 or higher the number is negative. or in decimal it would be 2147483648 or greater
+; To check if the SDWORD is negative, check the hex MSB, if it is 8 or higher the number is negative.
+; In decimal it would be 2147483648 or greater
+
   mov   ESI, [EBP+8]		 ; input param into ESI	
   mov   EDI, [EBP+12]		 ; EDI points to address of outString for stosb.
   push  ESI					 ; SAVE THIS TO COMPARE AGAIN LATER?	
@@ -277,7 +307,8 @@ writeVal PROC
 _negative:
   neg   ESI
   mov   EAX, ESI
-; then for each digit, divide by 10. the remainder plus 48 is the ascii code for the digit.
+
+; Then for each digit, divide by 10. the remainder plus 48 is the ascii code for the digit.
 _skip:
   mov   EBX, 10
   mov   ECX, 0				 ; counter
@@ -290,8 +321,6 @@ _divLoop:
   mov   EAX, EDX			 ; move the num we want to EAX so we can use STOSD
   stosb						 ; puts EAX val into [EDI] and increments EDI ****should this be stosD?????
   pop   EAX
-;  push EDX
-;  mov  [EDI], EDX	
   inc   ECX
   cmp   EAX, 0				 ; if quotient is 0 we can stop
   jnz  _divLoop				 ; then do it again. divide the quotient by 10, and the remainder plus 48 is the second to last digit. and so on.
@@ -309,7 +338,7 @@ _addSign:
 
 _setIndices:
   push  ECX					 ; save the string's length!
-;reverse so it's proper:
+; Reverse so it's proper:
   mov   ESI, [EBP+12]
   add   ESI, ECX
   dec   ESI
@@ -320,14 +349,14 @@ _revLoop:
   cld
   stosb
   LOOP   _revLoop
-;add the null terminator:
+; Add the null terminator:
   pop   ECX
   mov   EDI, [EBP+16]
   add   EDI, ECX			 ; add the length to get to the end of the string
   mov	EAX, 0
   mov	[EDI], EAX			 ; add the null terminator 0
 
-;write
+; Rrite
   mDisplayString [EBP+16]	 ; Invoke the mDisplayString macro to print the ascii representation of the SDWORD value to the output.
 
   popad						 ; restore registers
@@ -339,12 +368,12 @@ writeVal ENDP
 ; ---------------------------------------------------------------------------------
 ; Name: sumVal
 ;	sums the SDWORD integers in an array
-; Preconditions:
+; Preconditions: sum must be defined in data section. Array is of type SDWORDS.
 ; Postconditions: 
 ; Receives:	[EBP+16] = sum - output parameter by reference
 ;			[EBP+12] = ARRAYSIZE - input parameter by value
 ;	    	[EBP+8] = numList - input parameter by reference - offset address
-; Returns: 
+; Returns: sum - an SDWORD
 ; ---------------------------------------------------------------------------------
 sumVal PROC
 ; preserve EBP
@@ -372,14 +401,15 @@ sumVal ENDP
 
 ; ---------------------------------------------------------------------------------
 ; Name: averageVal
-;	calculates the average of the SDWORD integers in an array
-; Preconditions:
+;	calculates the rounded down average of the SDWORD integers in an array
+; Preconditions: sum must be defined in data section and already calculated as a SDWORD. 
+;				 averge must be defined in data section. Array is of type SDWORDS.
 ; Postconditions: 
 ; Receives:	[EBP+20] = sum - input parameter by value
 ;			[EBP+16] = average - output parameter by reference
 ;			[EBP+12] = ARRAYSIZE - input parameter by value
 ;	    	[EBP+8] = numList - input parameter by reference - offset address
-; Returns: 
+; Returns: Rounded down average (remainder is discarded) value saved to global variable.
 ; ---------------------------------------------------------------------------------
 averageVal PROC
 ; preserve EBP
