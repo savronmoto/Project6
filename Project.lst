@@ -1,4 +1,4 @@
-Microsoft (R) Macro Assembler Version 14.27.29111.0	    12/07/20 22:27:38
+Microsoft (R) Macro Assembler Version 14.27.29111.0	    12/07/20 22:36:34
 6String Primitives & Macros     (project6_hansonsa.asm	     Page 1 - 1
 
 
@@ -232,81 +232,82 @@ Microsoft (R) Macro Assembler Version 14.27.29111.0	    12/07/20 22:27:38
 
 				; Get 10 valid integers from the user
  00000027  BF 000001F7 R	  mov	EDI, OFFSET numList			
- 0000002C			_untilTen:							
- 0000002C  68 00000227 R	  push	OFFSET validInt
- 00000031  68 0000016A R	  push  OFFSET invalid
- 00000036  68 000001F3 R	  push	OFFSET sLen
- 0000003B  68 0000012D R	  push	OFFSET inString
- 00000040  68 00000142 R	  push  OFFSET prompt
- 00000045  E8 000000CB		  call  readVal
- 0000004A  8B 35 00000227 R	  mov	ESI, validInt				; This is a SDWORD integer value!
- 00000050  89 37		  mov	[EDI], ESI					; Stores these numeric values in an array.
- 00000052  03 3D 0000021F R	  add	EDI, typeList
- 00000058  E2 D2		  LOOP	_untilTen
+ 0000002C			_untilTen:	
+ 0000002C  6A 15		  push  MAXSIZE
+ 0000002E  68 00000227 R	  push	OFFSET validInt
+ 00000033  68 0000016A R	  push  OFFSET invalid
+ 00000038  68 000001F3 R	  push	OFFSET sLen
+ 0000003D  68 0000012D R	  push	OFFSET inString
+ 00000042  68 00000142 R	  push  OFFSET prompt
+ 00000047  E8 000000CB		  call  readVal
+ 0000004C  8B 35 00000227 R	  mov	ESI, validInt				; This is a SDWORD integer value!
+ 00000052  89 37		  mov	[EDI], ESI					; Stores these numeric values in an array.
+ 00000054  03 3D 0000021F R	  add	EDI, typeList
+ 0000005A  E2 D0		  LOOP	_untilTen
 
 				; Call sum procedure
- 0000005A  68 00000258 R	  push  OFFSET sum
- 0000005F  6A 0A		  push  ARRAYSIZE
- 00000061  68 000001F7 R	  push  OFFSET numList
- 00000066  E8 000001EB		  call  sumVal
+ 0000005C  68 00000258 R	  push  OFFSET sum
+ 00000061  6A 0A		  push  ARRAYSIZE
+ 00000063  68 000001F7 R	  push  OFFSET numList
+ 00000068  E8 000001E9		  call  sumVal
 
 				; Call average procedure
- 0000006B  FF 35 00000258 R	  push  sum
- 00000071  68 0000025C R	  push  OFFSET average
- 00000076  6A 0A		  push  ARRAYSIZE
- 00000078  68 000001F7 R	  push  OFFSET numList
- 0000007D  E8 000001EF		  call  averageVal
+ 0000006D  FF 35 00000258 R	  push  sum
+ 00000073  68 0000025C R	  push  OFFSET average
+ 00000078  6A 0A		  push  ARRAYSIZE
+ 0000007A  68 000001F7 R	  push  OFFSET numList
+ 0000007F  E8 000001ED		  call  averageVal
 
 				; Call writeVal procedure
- 00000082  B9 0000000A		  mov   ECX, ARRAYSIZE
+ 00000084  B9 0000000A		  mov   ECX, ARRAYSIZE
 				  mDisplayString OFFSET intLabel 
- 00000087  52		     1	  push  EDX
- 00000088  BA 00000193 R     1	  mov	EDX, OFFSET intLabel
- 0000008D  E8 00000000 E     1	  call	WriteString
- 00000092  5A		     1	  pop	EDX
- 00000093  BE 000001F7 R	  mov	ESI, OFFSET numList
- 00000098			_displayLoop:
- 00000098  FC			  cld							
- 00000099  AD			  lodsd								; Move first value in numList to EAX for processing
- 0000009A  68 00000243 R	  push  OFFSET properString
- 0000009F  68 0000022E R	  push  OFFSET revString
- 000000A4  50			  push	EAX
- 000000A5  E8 00000135		  call  writeVal					; Display the integers
+ 00000089  52		     1	  push  EDX
+ 0000008A  BA 00000193 R     1	  mov	EDX, OFFSET intLabel
+ 0000008F  E8 00000000 E     1	  call	WriteString
+ 00000094  5A		     1	  pop	EDX
+ 00000095  BE 000001F7 R	  mov	ESI, OFFSET numList
+ 0000009A			_displayLoop:
+ 0000009A  FC			  cld							
+ 0000009B  AD			  lodsd								; Move first value in numList to EAX for processing
+ 0000009C  68 00000243 R	  push  OFFSET properString
+ 000000A1  68 0000022E R	  push  OFFSET revString
+ 000000A6  50			  push	EAX
+ 000000A7  E8 00000133		  call  writeVal					; Display the integers
 				  mDisplayString OFFSET comma
- 000000AA  52		     1	  push  EDX
- 000000AB  BA 0000022B R     1	  mov	EDX, OFFSET comma
- 000000B0  E8 00000000 E     1	  call	WriteString
- 000000B5  5A		     1	  pop	EDX
- 000000B6  E2 E0		  LOOP	_displayLoop
- 000000B8  E8 00000000 E	  call  CrLf
- 000000BD  E8 00000000 E	  call  CrLf
+ 000000AC  52		     1	  push  EDX
+ 000000AD  BA 0000022B R     1	  mov	EDX, OFFSET comma
+ 000000B2  E8 00000000 E     1	  call	WriteString
+ 000000B7  5A		     1	  pop	EDX
+ 000000B8  E2 E0		  LOOP	_displayLoop
+ 000000BA  E8 00000000 E	  call  CrLf
+ 000000BF  E8 00000000 E	  call  CrLf
 
 				; Display sum & average
 				  mDisplayString OFFSET sumLabel
- 000000C2  52		     1	  push  EDX
- 000000C3  BA 000001B3 R     1	  mov	EDX, OFFSET sumLabel
- 000000C8  E8 00000000 E     1	  call	WriteString
- 000000CD  5A		     1	  pop	EDX
- 000000CE  68 00000243 R	  push  OFFSET properString
- 000000D3  68 0000022E R	  push  OFFSET revString
- 000000D8  FF 35 00000258 R	  push  sum
- 000000DE  E8 000000FC		  call  writeVal					; Display the sum
- 000000E3  E8 00000000 E	  call  CrLf
+ 000000C4  52		     1	  push  EDX
+ 000000C5  BA 000001B3 R     1	  mov	EDX, OFFSET sumLabel
+ 000000CA  E8 00000000 E     1	  call	WriteString
+ 000000CF  5A		     1	  pop	EDX
+ 000000D0  68 00000243 R	  push  OFFSET properString
+ 000000D5  68 0000022E R	  push  OFFSET revString
+ 000000DA  FF 35 00000258 R	  push  sum
+ 000000E0  E8 000000FA		  call  writeVal					; Display the sum
+ 000000E5  E8 00000000 E	  call  CrLf
 				  mDisplayString OFFSET avgLabel
- 000000E8  52		     1	  push  EDX
- 000000E9  BA 000001D3 R     1	  mov	EDX, OFFSET avgLabel
- 000000EE  E8 00000000 E     1	  call	WriteString
- 000000F3  5A		     1	  pop	EDX
- 000000F4  68 00000243 R	  push  OFFSET properString
- 000000F9  68 0000022E R	  push  OFFSET revString
- 000000FE  FF 35 0000025C R	  push  average						; Display the average
- 00000104  E8 000000D6		  call  writeVal
- 00000109  E8 00000000 E	  call  CrLf
+ 000000EA  52		     1	  push  EDX
+ 000000EB  BA 000001D3 R     1	  mov	EDX, OFFSET avgLabel
+ 000000F0  E8 00000000 E     1	  call	WriteString
+ 000000F5  5A		     1	  pop	EDX
+ 000000F6  68 00000243 R	  push  OFFSET properString
+ 000000FB  68 0000022E R	  push  OFFSET revString
+ 00000100  FF 35 0000025C R	  push  average						; Display the average
+ 00000106  E8 000000D4		  call  writeVal
+ 0000010B  E8 00000000 E	  call  CrLf
 
 				  Invoke ExitProcess,0	; exit to operating system
- 0000010E  6A 00	   *	    push   +000000000h
- 00000110  E8 00000000 E   *	    call   ExitProcess
- 00000115			main ENDP
+ 00000110  6A 00	   *	    push   +000000000h
+ 00000112  E8 00000000 E   *	    call   ExitProcess
+ 00000117			main ENDP
 
 
 				; ---------------------------------------------------------------------------------
@@ -315,30 +316,31 @@ Microsoft (R) Macro Assembler Version 14.27.29111.0	    12/07/20 22:27:38
 				;   Validation occurs to ensure input is a number and not some other character. 
 				; Preconditions: 
 				;	validInt, invalid, sLen, inString, and prompt must all be intialized in the date section.
-				; Receives:	[EBP+24] = validInt - offset address for data label
-				;			[EBP+20] = invalid - offset address
-				;           [EBP+16] = sLen - offset address
-				;			[EBP+12] = inString (the buffer) - offset address
-				;	    	[EBP+8] = prompt - offset address
-				; Returns: validInt generated by procedure and stored in global variable.
+				; Receives:	[EBP+28] = MAXSIZE - input parameter by value
+				;			[EBP+24] = validInt - output by reference - offset address for data label
+				;			[EBP+20] = invalid - input by reference - offset address for string
+				;           [EBP+16] = sLen - input by reference - offset address
+				;			[EBP+12] = inString (the buffer) - output by reference
+				;	    	[EBP+8] = prompt - input by reference - offset address for string
+				; Returns: validInt generated by procedure and stored in global variable. 
 				; ---------------------------------------------------------------------------------
- 00000115			readVal PROC
+ 00000117			readVal PROC
 				; preserve EBP
- 00000115  55			  push	EBP				
- 00000116  8B EC		  mov	EBP, ESP
+ 00000117  55			  push	EBP				
+ 00000118  8B EC		  mov	EBP, ESP
 				; preserve registers
- 00000118  60			  pushad
+ 0000011A  60			  pushad
 
 				; Invoke the mGetSring macro to get user input in the form of a string of digits.
- 00000119			_getInput:
-				  mGetString [EBP+8],[EBP+12],MAXSIZE,[EBP+16]
- 00000119  52		     1	  push	EDX
- 0000011A  51		     1	  push  ECX
- 0000011B  50		     1	  push  EAX
- 0000011C  8B 55 08	     1	  mov   EDX, [EBP+8]				; prompt for a number (input parameter, by reference)
- 0000011F  E8 00000000 E     1	  call  WriteString
- 00000124  8B 55 0C	     1	  mov   EDX, [EBP+12]		; buffer (output parameter, by reference)
- 00000127  B9 00000015	     1	  mov   ECX, MAXSIZE        	; maxsize (input parameter, by value)
+ 0000011B			_getInput:
+				  mGetString [EBP+8],[EBP+12],[EBP+28],[EBP+16]
+ 0000011B  52		     1	  push	EDX
+ 0000011C  51		     1	  push  ECX
+ 0000011D  50		     1	  push  EAX
+ 0000011E  8B 55 08	     1	  mov   EDX, [EBP+8]				; prompt for a number (input parameter, by reference)
+ 00000121  E8 00000000 E     1	  call  WriteString
+ 00000126  8B 55 0C	     1	  mov   EDX, [EBP+12]		; buffer (output parameter, by reference)
+ 00000129  8B 4D 1C	     1	  mov   ECX, [EBP+28]        	; maxsize (input parameter, by value)
  0000012C  E8 00000000 E     1	  call  ReadString
  00000131  8B 5D 10	     1	  mov	EBX, [EBP+16]
  00000134  89 03	     1	  mov   [EBX], EAX		        ; bytes read - (output parameter, by reference)
@@ -428,7 +430,7 @@ Microsoft (R) Macro Assembler Version 14.27.29111.0	    12/07/20 22:27:38
  000001C7  8B 55 14	     1	  mov	EDX, [EBP+20]
  000001CA  E8 00000000 E     1	  call	WriteString
  000001CF  5A		     1	  pop	EDX
- 000001D0  E9 FFFFFF44		  jmp	_getInput
+ 000001D0  E9 FFFFFF46		  jmp	_getInput
  000001D5			_store: 
 				; Store this value in a memory variable (output parameter, by reference)
  000001D5  8B 7D 18		  mov	EDI, [EBP+24]	; validInt address into EDI 
@@ -602,7 +604,7 @@ Microsoft (R) Macro Assembler Version 14.27.29111.0	    12/07/20 22:27:38
  00000288			averageVal ENDP 
 
 				END main
-Microsoft (R) Macro Assembler Version 14.27.29111.0	    12/07/20 22:27:38
+Microsoft (R) Macro Assembler Version 14.27.29111.0	    12/07/20 22:36:34
 6String Primitives & Macros     (project6_hansonsa.asm	     Symbols 2 - 1
 
 
@@ -813,12 +815,12 @@ WriteString  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 WriteToFile  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteWindowsMsg  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 averageVal . . . . . . . . . . .	P Near	 00000271 _TEXT	Length= 00000017 Public STDCALL
-main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000115 Public STDCALL
+main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000117 Public STDCALL
   _untilTen  . . . . . . . . . .	L Near	 0000002C _TEXT	
-  _displayLoop . . . . . . . . .	L Near	 00000098 _TEXT	
+  _displayLoop . . . . . . . . .	L Near	 0000009A _TEXT	
 printf . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
-readVal  . . . . . . . . . . . .	P Near	 00000115 _TEXT	Length= 000000CA Public STDCALL
-  _getInput  . . . . . . . . . .	L Near	 00000119 _TEXT	
+readVal  . . . . . . . . . . . .	P Near	 00000117 _TEXT	Length= 000000C8 Public STDCALL
+  _getInput  . . . . . . . . . .	L Near	 0000011B _TEXT	
   _decCount  . . . . . . . . . .	L Near	 00000171 _TEXT	
   _negLoop . . . . . . . . . . .	L Near	 00000172 _TEXT	
   _posLoop . . . . . . . . . . .	L Near	 00000196 _TEXT	
