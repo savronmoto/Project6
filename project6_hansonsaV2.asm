@@ -66,6 +66,8 @@ validInt		DWORD	 ?				   ; "returns" from readVal, to be added to numList in loo
 comma			BYTE	 ", ",0
 revString		BYTE     MAXSIZE DUP(0)
 properString	BYTE     MAXSIZE DUP(0)
+sum				SDWORD   ?
+average			SDWORD   ?
 
 .code
 main PROC
@@ -87,8 +89,20 @@ _untilTen:							; Get 10 valid integers from the user.
   add	EDI, typeList
   LOOP	_untilTen
 
-  ; do math
+; Call sum procedure
+  push  OFFSET sum
+  push  ARRAYSIZE
+  push  OFFSET numList
+  call  sumVal
 
+; Call average procedure
+  push  sum
+  push  OFFSET average
+  push  ARRAYSIZE
+  push  OFFSET numList
+  call  averageVal
+
+; Call writeVal procedure
   mov   ECX, ARRAYSIZE
   mDisplayString OFFSET intLabel 
   mov	ESI, OFFSET numList
@@ -103,6 +117,22 @@ _displayLoop:
   LOOP	_displayLoop
   call  CrLf
   call  CrLf
+
+; Display sum & average
+  mDisplayString OFFSET sumLabel
+  push  OFFSET properString
+  push  OFFSET revString
+  push  sum
+  call  writeVal
+  call  CrLf
+  mDisplayString OFFSET avgLabel
+  push  OFFSET properString
+  push  OFFSET revString
+  push  average
+  call  writeVal
+  call  CrLf
+
+
 
   Invoke ExitProcess,0	; exit to operating system
 main ENDP
@@ -144,7 +174,7 @@ _getInput:
   lodsb					; bytes in inString into AL
 
   cmp   AL, 45			; check if char is negative sign
-  je	_negLoop
+  je	_decCount
 
   cmp	AL, 48			; make sure it is a number char
   jl	_notNum			
@@ -163,8 +193,9 @@ _getInput:
   jmp	_posLoop
 
 ; If it is negative:
-_negLoop:
+_decCount:
   dec   ECX
+_negLoop:
   lodsb					; next char
   cmp	AL, 48			; make sure it is a number char
   jl	_notNum			
@@ -235,14 +266,22 @@ writeVal PROC
   pushad
 
 ; to check if the SDWORD is negative, check the hex MSB, if it is 8 or higher the number is negative. or in decimal it would be 2147483648 or greater
-
-; If the SDWORD is negative, first add the ascii character for -, whichi is 45 (2Dh) ***********DO NEG PART*********
-
-; then for each digit, divide by 10. the remainder plus 48 is the ascii code for the digit.
-  mov   EBX, 10
+  mov   ESI, [EBP+8]		 ; input param into ESI	
+  mov   EDI, [EBP+12]		 ; EDI points to address of outString for stosb.
+  push  ESI					 ; SAVE THIS TO COMPARE AGAIN LATER?	
+  mov	EBX, 2147483648
+  cmp   EBX, ESI
+  js   _negative
   mov   EAX, [EBP+8]		 ; move element of numList into dividend
+  jmp   _skip
+_negative:
+  neg   ESI
+  mov   EAX, ESI
+; then for each digit, divide by 10. the remainder plus 48 is the ascii code for the digit.
+_skip:
+  mov   EBX, 10
   mov   ECX, 0				 ; counter
-  mov   EDI, [EBP+12]		 ; EDI points to address of outString I CAN DO THE STORSB thing now because i have a byte array. and use redfield's reversal algo.
+  
 _divLoop:  
   cdq
   idiv  EBX					 ; EAX/EBX = q: EAX r: EDX
@@ -257,14 +296,25 @@ _divLoop:
   cmp   EAX, 0				 ; if quotient is 0 we can stop
   jnz  _divLoop				 ; then do it again. divide the quotient by 10, and the remainder plus 48 is the second to last digit. and so on.
 
-  push  ECX					 ; save the string's length!
+  pop   ESI					 ; get that SDWORD back
+  mov	EBX, 2147483648
+  cmp   EBX, ESI    		 ; check if negative again, lol, there's got to be a better way.	
+  js	_addSign
+  jmp   _setIndices
 
+_addSign:
+  mov   EAX, 45				 ; put the ascii sign for negative in EAX for processing
+  stosb
+  inc   ECX
+
+_setIndices:
+  push  ECX					 ; save the string's length!
 ;reverse so it's proper:
   mov   ESI, [EBP+12]
   add   ESI, ECX
   dec   ESI
   mov   EDI, [EBP+16]
- _revLoop:
+_revLoop:
   std
   lodsb
   cld
@@ -284,5 +334,72 @@ _divLoop:
   pop   EBP
   ret   12
 writeVal ENDP
+
+
+; ---------------------------------------------------------------------------------
+; Name: sumVal
+;	sums the SDWORD integers in an array
+; Preconditions:
+; Postconditions: 
+; Receives:	[EBP+16] = sum - output parameter by reference
+;			[EBP+12] = ARRAYSIZE - input parameter by value
+;	    	[EBP+8] = numList - input parameter by reference - offset address
+; Returns: 
+; ---------------------------------------------------------------------------------
+sumVal PROC
+; preserve EBP
+  push	EBP				
+  mov	EBP, ESP
+; preserve registers
+  pushad
+
+  mov	ECX, [EBP+12]
+  xor   EBX, EBX
+  mov   ESI, [EBP+8]
+  mov   EDI, [EBP+16]
+_sum:
+  lodsd 
+  add 	EBX, EAX
+  LOOP	_sum
+
+  mov	[EDI], EBX			; save sum
+
+  popad
+  pop   EBP
+  ret   12
+sumVal ENDP
+
+
+; ---------------------------------------------------------------------------------
+; Name: averageVal
+;	calculates the average of the SDWORD integers in an array
+; Preconditions:
+; Postconditions: 
+; Receives:	[EBP+20] = sum - input parameter by value
+;			[EBP+16] = average - output parameter by reference
+;			[EBP+12] = ARRAYSIZE - input parameter by value
+;	    	[EBP+8] = numList - input parameter by reference - offset address
+; Returns: 
+; ---------------------------------------------------------------------------------
+averageVal PROC
+; preserve EBP
+  push	EBP				
+  mov	EBP, ESP
+; preserve registers
+  pushad
+
+  mov   EAX, [EBP+20]
+  mov   EBX, [EBP+12]
+  mov   EDI, [EBP+16]
+  
+  cdq   
+  idiv  EBX					 ; EAX/EBX = q: EAX r: EDX
+
+  mov	[EDI], EAX			; save average
+
+  popad
+  pop   EBP
+  ret   16
+averageVal ENDP 
 
 END main
