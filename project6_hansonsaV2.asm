@@ -260,12 +260,14 @@ _posLoop:
   movzx EAX, AL
   add   EBX, EAX        ; numInt = 10 * numInt + (numChar - 48)
   LOOP	_posloop
+  cmp   EBX, 2147483648
+  jns    _notNum
   jmp	_store
 _notNum:
   mDisplayString [EBP+20]
   jmp	_getInput
 _store: 
-; Store this value in a memory variable (output parameter, by reference) 
+; Store this value in a memory variable (output parameter, by reference)
   mov	EDI, [EBP+24]	; validInt address into EDI 
   mov	[EDI], EBX		; numInt becomes the value at that address
   
